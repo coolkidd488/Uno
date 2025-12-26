@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>UNO Local V1.13 – Ryan + Irmão</title>
+<title>UNO Local V1.14 – Ryan + Irmão</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 body{margin:0;background:#0f172a;color:#fff;font-family:Arial}
@@ -31,17 +31,15 @@ button{padding:8px 12px;margin:4px;border:none;border-radius:6px;font-weight:bol
 <body>
 
 <div class="container">
-  <!-- Painel lateral -->
   <div class="side">
     <h3>Regras:</h3>
     <p>🎯 Bloqueio ⛔ e Reverso 🔄: joga de novo</p>
     <p>➕2 / ➕4: o outro compra cartas</p>
     <p>⏱ 3s para empilhar cartas iguais</p>
-    <h3>Atualizações (V1.13):</h3>
+    <h3>Atualizações (V1.14):</h3>
     <div id="updates"></div>
   </div>
 
-  <!-- Área do jogo -->
   <div class="game">
     <h3>Ryan (Jogador 1)</h3>
     <div id="p1" class="row"></div>
@@ -72,7 +70,6 @@ let deck=[], p1=[], p2=[], pile=null, turn=0, chainTimer=null, pendingColor=null
 const colors=["red","green","blue","yellow"];
 const symbols = {"reverse":"🔄","skip":"⛔","+2":"+2","+4":"+4"};
 
-// ------------------ DECK -------------------
 function createDeck(){
   deck=[];
   colors.forEach(c=>{
@@ -87,11 +84,9 @@ function createDeck(){
   deck.sort(()=>Math.random()-0.5);
 }
 
-// ------------------ DRAW -------------------
 function draw(p,n=1){for(let i=0;i<n;i++)p.push(deck.pop());}
 function canPlay(card){return card.c==="black"||card.c===pile.c||card.v===pile.v;}
 
-// ------------------ INIT -------------------
 function initGame(){
   createDeck();
   p1=[]; p2=[];
@@ -102,7 +97,6 @@ function initGame(){
 }
 initGame();
 
-// ------------------ ELEMENTS -------------------
 const p1El=document.getElementById("p1"), p2El=document.getElementById("p2");
 const turnEl=document.getElementById("turn"), timerEl=document.getElementById("timer");
 const playedCardEl=document.getElementById("playedCard");
@@ -117,7 +111,6 @@ function addUpdate(text){
   if(updatesEl.children.length>5) updatesEl.removeChild(updatesEl.lastChild);
 }
 
-// ------------------ RENDER -------------------
 function render(){
   const turnNames=["Sua vez","Vez do seu irmão"];
   turnEl.innerText=turnNames[turn];
@@ -168,6 +161,8 @@ function clickPlay(card,hand){
     draw(nextHand,2);
     nextTurn(true);
   } else if(card.v==="skip" || card.v==="reverse"){
+    // Bloqueio / Reverso: jogador joga de novo
+    addUpdate((hand===0?"Ryan":"Irmao")+" joga novamente devido a "+(card.v==="skip"?"Bloqueio ⛔":"Reverso 🔄"));
     startChain(h,true);
   } else {
     startChain(h);
