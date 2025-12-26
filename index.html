@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>UNO Local – Humano + IA</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body{margin:0;background:#0f172a;color:#fff;font-family:Arial;text-align:center}
+.area{margin:10px;padding:10px;border-radius:12px;background:#111827}
+button{padding:10px 16px;margin:5px;border:none;border-radius:8px;font-weight:bold;cursor:pointer}
+#lobby,#game{display:none}
+.row{display:flex;justify-content:center;flex-wrap:wrap;margin:6px}
+.card{width:55px;height:80px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:bold;margin:4px;cursor:pointer;color:#fff;font-size:20px}
+.red{background:#dc2626}
+.green{background:#16a34a}
+.blue{background:#2563eb}
+.yellow{background:#ca8a04}
+.black{background:#000}
+#center{margin:10px;min-height:100px;display:flex;align-items:center;justify-content:center;flex-direction:column}
+#playedCard{width:60px;height:85px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:22px;color:#fff;margin:5px}
+</style>
+</head>
+<body>
+
+<div id="menu" class="area">
+<h2>UNO Local</h2>
+<p>Digite seu nome:</p>
+<input id="playerName" placeholder="Seu nome"/>
+<button onclick="enterLobby()">Continuar</button>
+</div>
+
+<div id="lobby" class="area">
+<h2>Regras:</h2>
+<ul style="text-align:left">
+<li>Empilhe cartas iguais (mesmo número) em até 3 segundos</li>
+<li>+2 e +4 acumulam</li>
+<li>Bloqueio/🔄 permite jogar de novo</li>
+</ul>
+<p>Escolha o modo:</p>
+<button onclick="startGame('humanoIA')">Humano + IA (você + irmão)</button>
+</div>
+
+<div id="game" class="area">
+<h3>VOCÊ</h3>
+<div id="p1" class="row"></div>
+
+<div id="center">
+<h3>Cartas Jogadas</h3>
+<div id="playedCard"></div>
+<p id="turn"></p>
+<p id="timer"></p>
+<button onclick="drawCard()">Comprar carta / Passar vez</button>
+</div>
+
+<h3>SEU IRMÃO</h3>
+<div id="p2" class="row"></div>
+</div>
+
+<script>
+let mode="", deck=[], p1=[], p2=[], pile=null, turn=0, chainTimer=null;
+const colors=["red","green","blue","yellow"];
+
+// Substituir nomes por emojis
+const symbols = {"reverse":"🔄","skip":"⛔","+2":"+2","+4":"+4"};
+
+function enterLobby(){
+  const name=document.getElementById("playerName").value.trim();
+  if(!name)return alert("Digite seu nome");
+  document.getElementById("menu").style.display="none";
+  document.getElementById("lobby").style.display="block";
+}
+
+function startGame(selectedMode){
+  mode=selectedMode;
+  document.getElementById("lobby").style.display="none";
+  document.getElementById("game").style.display="block";
+  initGame();
+}
+
+// ------------------ INIT -------------------
+function createDeck(){
+  deck=[];
+  colors.forEach(c=>{
+    for(let i=0;i<=9;i++){
+      deck.push({c,v:i}); if(i!==0) deck.push({c,v:i});
+    }
+    ["reverse","skip","+2"].forEach(v=>{
+      if(v==="skip") v="skip"; // usamos skip mas mostra ⛔
+      deck.push({c,v}); deck.push({c,v});
+    });
+  });
+  for(let i=0;i<4;i++) deck.push({c:"black",v:"+4"});
+  deck.sort(()=>Math.random()-0.5);
+}
+
+function draw(p,n=1){for(let i=0;i<n;i++)p.push(deck.pop());}
+function canPlay(card){return card.c==="black"||card.c===pile.c||card.v===pile.v;}
+
+function initGame(){
+  createDeck();
+  p1=[]; p2=[];
+  draw(p1,7); draw(p2,7);
+  pile=deck.pop();
+  render();
+  updatePlayedCard();
+}
+
+// ------------------ RENDER -------------------
+const p1El=document.getElementById("p1"), p2El=document.getElementById("p2");
+const turnEl=document.getElementById("turn"), timerEl=document.getElementById("timer");
+const playedCardEl=document.getElementById("playedCard");
+
+function render(){
+  const turnNames=["Sua vez","Vez do seu irmão"];
+  turnEl.innerText=turnNames[turn];
+  timerEl.innerText="";
+
+  // P1
+  p1El.innerHTML="";
+  p1.forEach((c,i)=>{
+    const d=document.createElement("div");
+    d.className="card "+c.c;
+    d.innerText=c.v in symbols ? symbols[c.v] : c.v;
+    d.onclick=()=>clickPlay(c,0);
+    p1El.appendChild(d);
+  });
+
+  // P2
+  p2El.innerHTML="";
+  p2.forEach((c,i)=>{
+    const d=document.createElement("div");
+    d.className="card "+c.c;
+    d.innerText=c.v in symbols ? symbols[c.v] : c.v;
+    d.onclick=()=>clickPlay(c,1);
+    p2El.appendChild(d);
+  });
+
+  updatePlayedCard();
+}
+
+function updatePlayedCard(){
+  playedCardEl.className="card "+pile.c;
+  playedCardEl.innerText=pile.v in symbols ? symbols[pile.v] : pile.v;
+}
+
+// ------------------ PLAY -------------------
+function clickPlay(card,hand){
+  if(turn!==hand)return;
+  let h=hand===0?p1:p2;
+  if(!canPlay(card))return;
+  h.splice(h.indexOf(card),1);
+  pile=card;
+  render();
+  startChain(h);
+}
+
+function startChain(humanHand){
+  clearTimeout(chainTimer);
+  const sameNumber=humanHand.filter(c=>c.v===pile.v);
+  if(sameNumber.length>0){
+    let time=3; // 3s
+    timerEl.innerText="Você tem outra carta igual! "+time+"s";
+    chainTimer=setInterval(()=>{
+      time--;
+      timerEl.innerText="Você tem outra carta igual! "+time+"s";
+      if(time<=0){
+        clearInterval(chainTimer);
+        nextTurn();
+      }
+    },1000);
+  } else {
+    chainTimer=setTimeout(nextTurn,500);
+  }
+}
+
+function nextTurn(){
+  clearTimeout(chainTimer);
+  clearInterval(chainTimer);
+  turn=(turn+1)%2;
+  render();
+}
+
+// ------------------ COMPRAR CARTA -------------------
+function drawCard(){
+  let h=turn===0?p1:p2;
+  draw(h,1);
+  render();
+  nextTurn();
+}
+</script>
+</body>
+  </html>
