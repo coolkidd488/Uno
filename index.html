@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -9,7 +8,6 @@
 body{margin:0;background:#0f172a;color:#fff;font-family:Arial;text-align:center}
 .area{margin:10px;padding:10px;border-radius:12px;background:#111827}
 button{padding:10px 16px;margin:5px;border:none;border-radius:8px;font-weight:bold;cursor:pointer}
-#lobby,#game{display:none}
 .row{display:flex;justify-content:center;flex-wrap:wrap;margin:6px}
 .card{width:55px;height:80px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:bold;margin:4px;cursor:pointer;color:#fff;font-size:20px}
 .red{background:#dc2626}
@@ -17,32 +15,19 @@ button{padding:10px 16px;margin:5px;border:none;border-radius:8px;font-weight:bo
 .blue{background:#2563eb}
 .yellow{background:#ca8a04}
 .black{background:#000}
-#center{margin:10px;min-height:100px;display:flex;align-items:center;justify-content:center;flex-direction:column}
+#center{margin:10px;min-height:120px;display:flex;align-items:center;justify-content:center;flex-direction:column}
 #playedCard{width:60px;height:85px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:22px;color:#fff;margin:5px}
+.colorPicker button{width:40px;height:40px;margin:4px;border:none;border-radius:50%;cursor:pointer}
+.redBtn{background:#dc2626}
+.greenBtn{background:#16a34a}
+.blueBtn{background:#2563eb}
+.yellowBtn{background:#ca8a04}
 </style>
 </head>
 <body>
 
-<div id="menu" class="area">
-<h2>UNO Local</h2>
-<p>Digite seu nome:</p>
-<input id="playerName" placeholder="Seu nome"/>
-<button onclick="enterLobby()">Continuar</button>
-</div>
-
-<div id="lobby" class="area">
-<h2>Regras:</h2>
-<ul style="text-align:left">
-<li>Empilhe cartas iguais (mesmo número) em até 3 segundos</li>
-<li>+2 e +4 acumulam</li>
-<li>Bloqueio/🔄 permite jogar de novo</li>
-</ul>
-<p>Escolha o modo:</p>
-<button onclick="startGame('humanoIA')">Humano + IA (você + irmão)</button>
-</div>
-
 <div id="game" class="area">
-<h3>VOCÊ</h3>
+<h3>JOGADOR 1</h3>
 <div id="p1" class="row"></div>
 
 <div id="center">
@@ -51,30 +36,24 @@ button{padding:10px 16px;margin:5px;border:none;border-radius:8px;font-weight:bo
 <p id="turn"></p>
 <p id="timer"></p>
 <button onclick="drawCard()">Comprar carta / Passar vez</button>
+
+<div id="colorPicker" class="colorPicker" style="display:none">
+<p>Escolha a cor para +4:</p>
+<button class="redBtn" onclick="chooseColor('red')"></button>
+<button class="greenBtn" onclick="chooseColor('green')"></button>
+<button class="blueBtn" onclick="chooseColor('blue')"></button>
+<button class="yellowBtn" onclick="chooseColor('yellow')"></button>
+</div>
 </div>
 
-<h3>SEU IRMÃO</h3>
+<h3>JOGADOR 2</h3>
 <div id="p2" class="row"></div>
 </div>
 
 <script>
-let mode="", deck=[], p1=[], p2=[], pile=null, turn=0, chainTimer=null;
+let deck=[], p1=[], p2=[], pile=null, turn=0, chainTimer=null, pendingColor=null;
 const colors=["red","green","blue","yellow"];
 const symbols = {"reverse":"🔄","skip":"⛔","+2":"+2","+4":"+4"};
-
-function enterLobby(){
-  const name=document.getElementById("playerName").value.trim();
-  if(!name)return alert("Digite seu nome");
-  document.getElementById("menu").style.display="none";
-  document.getElementById("lobby").style.display="block";
-}
-
-function startGame(selectedMode){
-  mode=selectedMode;
-  document.getElementById("lobby").style.display="none";
-  document.getElementById("game").style.display="block";
-  initGame();
-}
 
 // ------------------ INIT -------------------
 function createDeck(){
@@ -103,11 +82,13 @@ function initGame(){
   render();
   updatePlayedCard();
 }
+initGame();
 
 // ------------------ RENDER -------------------
 const p1El=document.getElementById("p1"), p2El=document.getElementById("p2");
 const turnEl=document.getElementById("turn"), timerEl=document.getElementById("timer");
 const playedCardEl=document.getElementById("playedCard");
+const colorPickerEl=document.getElementById("colorPicker");
 
 function render(){
   const turnNames=["Sua vez","Vez do seu irmão"];
@@ -116,7 +97,7 @@ function render(){
 
   // P1
   p1El.innerHTML="";
-  p1.forEach((c,i)=>{
+  p1.forEach(c=>{
     const d=document.createElement("div");
     d.className="card "+c.c;
     d.innerText=c.v in symbols ? symbols[c.v] : c.v;
@@ -126,7 +107,7 @@ function render(){
 
   // P2
   p2El.innerHTML="";
-  p2.forEach((c,i)=>{
+  p2.forEach(c=>{
     const d=document.createElement("div");
     d.className="card "+c.c;
     d.innerText=c.v in symbols ? symbols[c.v] : c.v;
@@ -144,24 +125,37 @@ function updatePlayedCard(){
 
 // ------------------ PLAY -------------------
 function clickPlay(card,hand){
-  if(turn!==hand)return;
+  if(turn!==hand || (pendingColor && card.v==="+4")) return;
   let h=hand===0?p1:p2;
-  if(!canPlay(card))return;
+  if(!canPlay(card)) return;
 
   h.splice(h.indexOf(card),1);
   pile=card;
   render();
 
-  // Efeito +2/+4
-  if(card.v==="+2" || card.v==="+4"){
+  if(card.v==="+4"){
+    // Mostra seleção de cor
+    colorPickerEl.style.display="block";
+    pendingColor=turn; // indica quem jogou +4
+  } else if(card.v==="+2"){
     let nextHand = turn===0?p2:p1;
-    draw(nextHand, card.v==="+2"?2:4);
-    nextTurn(true); // pular o próximo
+    draw(nextHand,2);
+    nextTurn(true);
   } else if(card.v==="reverse" || card.v==="skip"){
-    startChain(h); // continua o turno (pode jogar de novo)
+    startChain(h);
   } else {
     startChain(h);
   }
+}
+
+// Escolher cor do +4
+function chooseColor(c){
+  pile.c=c;
+  colorPickerEl.style.display="none";
+  let nextHand = turn===0?p2:p1;
+  draw(nextHand,4);
+  pendingColor=null;
+  nextTurn(true);
 }
 
 // ------------------ CHAIN -------------------
