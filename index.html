@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -59,8 +60,6 @@ button{padding:10px 16px;margin:5px;border:none;border-radius:8px;font-weight:bo
 <script>
 let mode="", deck=[], p1=[], p2=[], pile=null, turn=0, chainTimer=null;
 const colors=["red","green","blue","yellow"];
-
-// Substituir nomes por emojis
 const symbols = {"reverse":"🔄","skip":"⛔","+2":"+2","+4":"+4"};
 
 function enterLobby(){
@@ -85,7 +84,7 @@ function createDeck(){
       deck.push({c,v:i}); if(i!==0) deck.push({c,v:i});
     }
     ["reverse","skip","+2"].forEach(v=>{
-      if(v==="skip") v="skip"; // usamos skip mas mostra ⛔
+      if(v==="skip") v="skip";
       deck.push({c,v}); deck.push({c,v});
     });
   });
@@ -148,17 +147,29 @@ function clickPlay(card,hand){
   if(turn!==hand)return;
   let h=hand===0?p1:p2;
   if(!canPlay(card))return;
+
   h.splice(h.indexOf(card),1);
   pile=card;
   render();
-  startChain(h);
+
+  // Efeito +2/+4
+  if(card.v==="+2" || card.v==="+4"){
+    let nextHand = turn===0?p2:p1;
+    draw(nextHand, card.v==="+2"?2:4);
+    nextTurn(true); // pular o próximo
+  } else if(card.v==="reverse" || card.v==="skip"){
+    startChain(h); // continua o turno (pode jogar de novo)
+  } else {
+    startChain(h);
+  }
 }
 
+// ------------------ CHAIN -------------------
 function startChain(humanHand){
   clearTimeout(chainTimer);
   const sameNumber=humanHand.filter(c=>c.v===pile.v);
   if(sameNumber.length>0){
-    let time=3; // 3s
+    let time=3;
     timerEl.innerText="Você tem outra carta igual! "+time+"s";
     chainTimer=setInterval(()=>{
       time--;
@@ -173,10 +184,14 @@ function startChain(humanHand){
   }
 }
 
-function nextTurn(){
+function nextTurn(skipNext=false){
   clearTimeout(chainTimer);
   clearInterval(chainTimer);
-  turn=(turn+1)%2;
+  if(skipNext){
+    turn=(turn+2)%2;
+  } else {
+    turn=(turn+1)%2;
+  }
   render();
 }
 
@@ -189,4 +204,4 @@ function drawCard(){
 }
 </script>
 </body>
-  </html>
+</html>
