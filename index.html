@@ -2,226 +2,60 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>UNO Local V1.14 – Ryan + Irmão</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Player de Vídeo</title>
 <style>
-body{margin:0;background:#0f172a;color:#fff;font-family:Arial}
-.container{display:flex;flex-direction:row;height:100vh}
-.side{width:220px;background:#111827;padding:10px;box-sizing:border-box;overflow-y:auto}
-.game{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center}
-h3{margin:5px;text-align:center}
-.row{display:flex;justify-content:center;flex-wrap:wrap;margin:6px}
-.card{width:55px;height:80px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:bold;margin:4px;cursor:pointer;color:#fff;font-size:20px}
-.red{background:#dc2626}
-.green{background:#16a34a}
-.blue{background:#2563eb}
-.yellow{background:#ca8a04}
-.black{background:#000}
-#center{margin:10px;min-height:140px;display:flex;align-items:center;justify-content:center;flex-direction:column}
-#playedCard{width:60px;height:85px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:22px;color:#fff;margin:5px}
-.colorPicker button{width:40px;height:40px;margin:4px;border:none;border-radius:50%;cursor:pointer}
-.redBtn{background:#dc2626}
-.greenBtn{background:#16a34a}
-.blueBtn{background:#2563eb}
-.yellowBtn{background:#ca8a04}
-button{padding:8px 12px;margin:4px;border:none;border-radius:6px;font-weight:bold;cursor:pointer}
-.update{font-size:12px;margin:2px;border-bottom:1px solid #333;padding:2px 0}
+  body{
+    font-family: Arial;
+    text-align: center;
+    background:#111;
+    color:white;
+  }
+  video{
+    width:70%;
+    margin-top:20px;
+    border-radius:10px;
+  }
+  button{
+    padding:10px 15px;
+    margin:5px;
+    font-size:16px;
+    cursor:pointer;
+  }
 </style>
 </head>
 <body>
 
-<div class="container">
-  <div class="side">
-    <h3>Regras:</h3>
-    <p>🎯 Bloqueio ⛔ e Reverso 🔄: joga de novo</p>
-    <p>➕2 / ➕4: o outro compra cartas</p>
-    <p>⏱ 3s para empilhar cartas iguais</p>
-    <h3>Atualizações (V1.14):</h3>
-    <div id="updates"></div>
-  </div>
+<h2>Player de Vídeo</h2>
 
-  <div class="game">
-    <h3>Ryan (Jogador 1)</h3>
-    <div id="p1" class="row"></div>
+<video id="meuVideo">
+  <source src="video.mp4" type="video/mp4">
+  Seu navegador não suporta vídeo.
+</video>
 
-    <div id="center">
-      <h3>Cartas Jogadas</h3>
-      <div id="playedCard"></div>
-      <p id="turn"></p>
-      <p id="timer"></p>
-      <button onclick="drawCard()">Comprar carta / Passar vez</button>
+<br><br>
 
-      <div id="colorPicker" class="colorPicker" style="display:none">
-        <p>Escolha a cor para +4:</p>
-        <button class="redBtn" onclick="chooseColor('red')"></button>
-        <button class="greenBtn" onclick="chooseColor('green')"></button>
-        <button class="blueBtn" onclick="chooseColor('blue')"></button>
-        <button class="yellowBtn" onclick="chooseColor('yellow')"></button>
-      </div>
-    </div>
-
-    <h3>Irmao (Jogador 2)</h3>
-    <div id="p2" class="row"></div>
-  </div>
-</div>
+<button onclick="playVideo()">▶ Play</button>
+<button onclick="pauseVideo()">⏸ Pause</button>
+<button onclick="velocidade(0.5)">🐢 0.5x</button>
+<button onclick="velocidade(1)">▶ 1x</button>
+<button onclick="velocidade(1.5)">⚡ 1.5x</button>
+<button onclick="velocidade(2)">🚀 2x</button>
 
 <script>
-let deck=[], p1=[], p2=[], pile=null, turn=0, chainTimer=null, pendingColor=null;
-const colors=["red","green","blue","yellow"];
-const symbols = {"reverse":"🔄","skip":"⛔","+2":"+2","+4":"+4"};
+let video = document.getElementById("meuVideo");
 
-function createDeck(){
-  deck=[];
-  colors.forEach(c=>{
-    for(let i=0;i<=9;i++){
-      deck.push({c,v:i}); if(i!==0) deck.push({c,v:i});
-    }
-    ["reverse","skip","+2"].forEach(v=>{
-      deck.push({c,v}); deck.push({c,v});
-    });
-  });
-  for(let i=0;i<4;i++) deck.push({c:"black",v:"+4"});
-  deck.sort(()=>Math.random()-0.5);
+function playVideo(){
+  video.play();
 }
 
-function draw(p,n=1){for(let i=0;i<n;i++)p.push(deck.pop());}
-function canPlay(card){return card.c==="black"||card.c===pile.c||card.v===pile.v;}
-
-function initGame(){
-  createDeck();
-  p1=[]; p2=[];
-  draw(p1,7); draw(p2,7);
-  pile=deck.pop();
-  render();
-  updatePlayedCard();
-}
-initGame();
-
-const p1El=document.getElementById("p1"), p2El=document.getElementById("p2");
-const turnEl=document.getElementById("turn"), timerEl=document.getElementById("timer");
-const playedCardEl=document.getElementById("playedCard");
-const colorPickerEl=document.getElementById("colorPicker");
-const updatesEl=document.getElementById("updates");
-
-function addUpdate(text){
-  const div=document.createElement("div");
-  div.className="update";
-  div.innerText=text;
-  updatesEl.prepend(div);
-  if(updatesEl.children.length>5) updatesEl.removeChild(updatesEl.lastChild);
+function pauseVideo(){
+  video.pause();
 }
 
-function render(){
-  const turnNames=["Sua vez","Vez do seu irmão"];
-  turnEl.innerText=turnNames[turn];
-  timerEl.innerText="";
-
-  p1El.innerHTML="";
-  p1.forEach(c=>{
-    const d=document.createElement("div");
-    d.className="card "+c.c;
-    d.innerText=c.v in symbols ? symbols[c.v] : c.v;
-    d.onclick=()=>clickPlay(c,0);
-    p1El.appendChild(d);
-  });
-
-  p2El.innerHTML="";
-  p2.forEach(c=>{
-    const d=document.createElement("div");
-    d.className="card "+c.c;
-    d.innerText=c.v in symbols ? symbols[c.v] : c.v;
-    d.onclick=()=>clickPlay(c,1);
-    p2El.appendChild(d);
-  });
-
-  updatePlayedCard();
-}
-
-function updatePlayedCard(){
-  playedCardEl.className="card "+pile.c;
-  playedCardEl.innerText=pile.v in symbols ? symbols[pile.v] : pile.v;
-}
-
-// ------------------ PLAY -------------------
-function clickPlay(card,hand){
-  if(turn!==hand || (pendingColor && card.v==="+4")) return;
-  let h=hand===0?p1:p2;
-  if(!canPlay(card)) return;
-
-  h.splice(h.indexOf(card),1);
-  pile=card;
-  render();
-  addUpdate((hand===0?"Ryan":"Irmao")+" jogou "+(card.v in symbols ? symbols[card.v] : card.v));
-
-  if(card.v==="+4"){
-    colorPickerEl.style.display="block";
-    pendingColor=turn;
-  } else if(card.v==="+2"){
-    let nextHand = turn===0?p2:p1;
-    draw(nextHand,2);
-    nextTurn(true);
-  } else if(card.v==="skip" || card.v==="reverse"){
-    // Bloqueio / Reverso: jogador joga de novo
-    addUpdate((hand===0?"Ryan":"Irmao")+" joga novamente devido a "+(card.v==="skip"?"Bloqueio ⛔":"Reverso 🔄"));
-    startChain(h,true);
-  } else {
-    startChain(h);
-  }
-}
-
-// ------------------ +4 COLOR -------------------
-function chooseColor(c){
-  pile.c=c;
-  colorPickerEl.style.display="none";
-  let nextHand = turn===0?p2:p1;
-  draw(nextHand,4);
-  addUpdate((turn===0?"Ryan":"Irmao")+" mudou a cor para "+c);
-  pendingColor=null;
-  nextTurn(true);
-}
-
-// ------------------ CHAIN -------------------
-function startChain(humanHand,playAgain=false){
-  clearTimeout(chainTimer);
-  const sameNumber=humanHand.filter(c=>c.v===pile.v);
-  if(sameNumber.length>0){
-    let time=3;
-    timerEl.innerText="Você tem outra carta igual! "+time+"s";
-    chainTimer=setInterval(()=>{
-      time--;
-      timerEl.innerText="Você tem outra carta igual! "+time+"s";
-      if(time<=0){
-        clearInterval(chainTimer);
-        if(playAgain) startChain(humanHand,true);
-        else nextTurn();
-      }
-    },1000);
-  } else {
-    if(playAgain) chainTimer=setTimeout(()=>startChain(humanHand,true),500);
-    else chainTimer=setTimeout(nextTurn,500);
-  }
-}
-
-// ------------------ NEXT TURN -------------------
-function nextTurn(skipNext=false){
-  clearTimeout(chainTimer);
-  clearInterval(chainTimer);
-  if(skipNext){
-    turn=(turn+2)%2;
-  } else {
-    turn=(turn+1)%2;
-  }
-  render();
-}
-
-// ------------------ DRAW CARD -------------------
-function drawCard(){
-  let h=turn===0?p1:p2;
-  draw(h,1);
-  render();
-  addUpdate((turn===0?"Ryan":"Irmao")+" comprou 1 carta");
-  nextTurn();
+function velocidade(v){
+  video.playbackRate = v;
 }
 </script>
+
 </body>
 </html>
